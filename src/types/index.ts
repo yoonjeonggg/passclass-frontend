@@ -422,3 +422,14 @@ export interface ApiResponse<T> {
   data: T;
   message: string;
 }
+
+// Actuator Health
+export interface ActuatorHealthComponent {
+  status: 'UP' | 'DOWN' | 'OUT_OF_SERVICE' | 'UNKNOWN';
+  details?: Record<string, unknown>;
+}
+
+export interface ActuatorHealthResponse {
+  status: 'UP' | 'DOWN' | 'OUT_OF_SERVICE' | 'UNKNOWN';
+  components?: Record<string, ActuatorHealthComponent>;
+}

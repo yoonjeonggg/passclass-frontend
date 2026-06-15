@@ -1,4 +1,5 @@
 import { api } from './client';
+import type { ActuatorHealthResponse } from '../types';
 import type {
   ApiResponse,
   SignupRequest, SignupResponse,
@@ -196,4 +197,16 @@ export const notificationApi = {
     api.patch<ApiResponse<void>>(`/notifications/${notificationId}/read`),
   getUnreadCount: () =>
     api.get<ApiResponse<UnreadCountResponse>>('/notifications/unread-count'),
+};
+
+// Monitoring
+const ACTUATOR_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/api$/, '');
+
+export const monitoringApi = {
+  getHealth: (): Promise<ActuatorHealthResponse> =>
+    fetch(`${ACTUATOR_BASE}/actuator/health`, { cache: 'no-store' })
+      .then(res => {
+        if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
+        return res.json() as Promise<ActuatorHealthResponse>;
+      }),
 };

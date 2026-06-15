@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi, userApi } from '../api';
+import { registerLogoutCallback } from '../api/client';
 import type { MyProfileResponse } from '../types';
 
 interface AuthContextType {
@@ -16,6 +17,16 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<MyProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const doLogout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    setUser(null);
+  };
+
+  useEffect(() => {
+    registerLogoutCallback(doLogout);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -39,9 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try { await authApi.logout(); } catch {}
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    setUser(null);
+    doLogout();
   };
 
   const signup = async (email: string, password: string, nickname: string) => {
