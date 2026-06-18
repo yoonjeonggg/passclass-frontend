@@ -23,6 +23,7 @@ import type {
   WrongNoteResponse, UpdateWrongNoteMemoRequest,
   ProblemStatisticsResponse,
   LectureQuestionRequest, LectureAnswerRequest, LectureQuestionResponse,
+  PaymentPrepareResponse, PaymentConfirmRequest, PaymentCancelRequest, PaymentResponse,
 } from '../types';
 
 // Auth
@@ -225,6 +226,18 @@ export const notificationApi = {
     api.patch<ApiResponse<void>>('/notifications/read-all'),
   getUnreadCount: () =>
     api.get<ApiResponse<UnreadCountResponse>>('/notifications/unread-count'),
+};
+
+// Payment
+export const paymentApi = {
+  prepare: (lectureId: number) =>
+    api.get<ApiResponse<PaymentPrepareResponse>>(`/payment/prepare/${lectureId}`),
+  confirm: (data: PaymentConfirmRequest) =>
+    api.post<ApiResponse<PaymentResponse>>('/payment/confirm', data),
+  cancel: (paymentId: number, data: PaymentCancelRequest) =>
+    api.post<ApiResponse<PaymentResponse>>(`/payment/cancel/${paymentId}`, data),
+  getMyPayments: (page = 0, size = 10) =>
+    api.get<ApiResponse<PageResponse<PaymentResponse>>>(`/payment/me?page=${page}&size=${size}`),
 };
 
 // Statistics

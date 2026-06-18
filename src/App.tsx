@@ -20,6 +20,8 @@ import WrongNotes from './pages/WrongNotes';
 import AdminDashboard from './pages/AdminDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import TeacherMyLectures from './pages/TeacherMyLectures';
+import PaymentResult from './pages/PaymentResult';
+import MyPayments from './pages/MyPayments';
 import { canAccessStaffRoute } from './utils/roles';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -72,6 +74,10 @@ function AppRoutes() {
           <Route path="/wrong-notes" element={
             <ProtectedRoute><WrongNotes /></ProtectedRoute>
           } />
+          <Route path="/my-payments" element={
+            <ProtectedRoute><MyPayments /></ProtectedRoute>
+          } />
+          <Route path="/payment/result" element={<PaymentResult />} />
           <Route path="/admin" element={
             <ProtectedRoute>
               <RoleRoute roles={['ADMIN']}><AdminDashboard /></RoleRoute>

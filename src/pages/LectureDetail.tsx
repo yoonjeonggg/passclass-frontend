@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { lectureApi, enrollmentApi, chapterApi, likeApi, reviewApi, questionApi } from "../api";
+import { lectureApi, enrollmentApi, chapterApi, likeApi, reviewApi, questionApi, paymentApi } from "../api";
 import { IconStar, IconUsers, IconVideo, IconHeart, IconCheck, IconAward, IconChevronLeft } from "../components/Icons";
 import type {
   LectureDetailResponse,
@@ -9,6 +9,7 @@ import type {
   ReviewResponse,
   ReviewSummaryResponse,
   LectureQuestionResponse,
+  PaymentPrepareResponse,
 } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
@@ -78,6 +79,11 @@ export default function LectureDetail() {
   const [enrolling, setEnrolling] = useState(false);
   const [enrolled, setEnrolled] = useState(false);
   const [cancellingEnrollment, setCancellingEnrollment] = useState(false);
+
+  // Payment
+  const [paymentPrep, setPaymentPrep] = useState<PaymentPrepareResponse | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [niceLoading, setNiceLoading] = useState(false);
   const [watchData, setWatchData] = useState<ChapterWatchResponse | null>(null);
   const [watchLoading, setWatchLoading] = useState(false);
   const [activeChapter, setActiveChapter] = useState<number | null>(null);
@@ -163,18 +169,64 @@ export default function LectureDetail() {
       .finally(() => setLoading(false));
   }, [lectureId, user]);
 
+  function loadNicepayScript(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if ((window as any).AUTHNICE) { resolve(); return; }
+      const s = document.createElement("script");
+      s.src = "https://pay.nicepay.co.kr/v1/js/";
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error("NICEPAY 스크립트를 불러오지 못했습니다."));
+      document.body.appendChild(s);
+    });
+  }
+
   const handleEnroll = async () => {
     if (!user) { navigate("/login"); return; }
     if (isInstructor) { toast("자신의 강의는 수강 신청할 수 없습니다.", "error"); return; }
     setEnrolling(true);
     try {
-      await enrollmentApi.enroll(Number(lectureId));
-      setEnrolled(true);
-      toast("수강 신청 완료!", "success");
+      const prepRes = await paymentApi.prepare(Number(lectureId));
+      const prep = prepRes.data;
+      if (prep.amount === 0) {
+        await enrollmentApi.enroll(Number(lectureId));
+        setEnrolled(true);
+        toast("수강 신청 완료!", "success");
+      } else {
+        setPaymentPrep(prep);
+        setShowPaymentModal(true);
+      }
     } catch (err: any) {
-      toast(err.message || "수강 신청 실패", "error");
+      const msg = err.message || "";
+      if (msg.includes("이미 수강") || msg.includes("이미 결제") || msg.includes("409")) {
+        setEnrolled(true);
+        toast("이미 수강 중인 강의입니다.", "info");
+      } else {
+        toast(msg || "수강 신청 실패", "error");
+      }
     } finally {
       setEnrolling(false);
+    }
+  };
+
+  const handleNicePayment = async () => {
+    if (!paymentPrep) return;
+    setNiceLoading(true);
+    try {
+      await loadNicepayScript();
+      (window as any).AUTHNICE.requestPay({
+        clientId: paymentPrep.clientKey,
+        method: "card",
+        orderId: paymentPrep.orderId,
+        amount: paymentPrep.amount,
+        goodsName: paymentPrep.goodsName,
+        buyerName: paymentPrep.buyerName,
+        buyerEmail: paymentPrep.buyerEmail,
+        returnUrl: `${window.location.origin}/payment/result`,
+      });
+    } catch (err: any) {
+      toast(err.message || "결제창을 열지 못했습니다.", "error");
+    } finally {
+      setNiceLoading(false);
     }
   };
 
@@ -457,6 +509,44 @@ export default function LectureDetail() {
 
   return (
     <div className="lecture-detail-page">
+      {/* NICEPAY Payment Modal */}
+      {showPaymentModal && paymentPrep && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}
+          onClick={() => setShowPaymentModal(false)}
+        >
+          <div
+            style={{ background: "#fff", borderRadius: 16, padding: "32px 28px", maxWidth: 440, width: "90%", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20, color: "var(--gray-900)" }}>결제 정보 확인</h2>
+            <div style={{ background: "var(--surface-bg, #f8f9fa)", borderRadius: 10, padding: "16px 18px", marginBottom: 20, fontSize: 14, lineHeight: 2 }}>
+              <div><span style={{ color: "var(--gray-400)", minWidth: 60, display: "inline-block" }}>강의</span> <strong>{paymentPrep.goodsName}</strong></div>
+              <div><span style={{ color: "var(--gray-400)", minWidth: 60, display: "inline-block" }}>결제 금액</span> <strong style={{ color: "var(--primary)", fontSize: 18 }}>{paymentPrep.amount.toLocaleString()}원</strong></div>
+              <div><span style={{ color: "var(--gray-400)", minWidth: 60, display: "inline-block" }}>구매자</span> {paymentPrep.buyerName}</div>
+              <div><span style={{ color: "var(--gray-400)", minWidth: 60, display: "inline-block" }}>이메일</span> {paymentPrep.buyerEmail}</div>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--gray-400)", marginBottom: 20 }}>NICEPAY 결제창이 열립니다. 카드 결제 후 수강이 자동으로 시작됩니다.</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1, fontSize: 15 }}
+                onClick={handleNicePayment}
+                disabled={niceLoading}
+              >
+                {niceLoading ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : "NICEPAY 결제하기"}
+              </button>
+              <button
+                className="btn btn-ghost"
+                style={{ flex: 1, fontSize: 15 }}
+                onClick={() => setShowPaymentModal(false)}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Hero — 비디오 재생 중에는 숨김 */}
       {!watchData && (
         <div className="detail-hero">

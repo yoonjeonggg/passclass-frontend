@@ -450,6 +450,39 @@ export interface LectureQuestionResponse {
   createdAt: string;
 }
 
+// Payment
+export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export interface PaymentPrepareResponse {
+  orderId: string;
+  clientKey: string;
+  amount: number;
+  goodsName: string;
+  buyerName: string;
+  buyerEmail: string;
+}
+
+export interface PaymentConfirmRequest {
+  orderId: string;
+  tid: string;
+  amount: number;
+}
+
+export interface PaymentCancelRequest {
+  reason: string;
+}
+
+export interface PaymentResponse {
+  paymentId: number;
+  lectureId: number;
+  lectureTitle: string;
+  orderId: string;
+  tid: string;
+  amount: number;
+  status: PaymentStatus;
+  createdAt: string;
+}
+
 // API Response wrapper
 export interface ApiResponse<T> {
   success: boolean;

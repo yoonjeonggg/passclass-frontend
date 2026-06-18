@@ -6,7 +6,7 @@ import type { NotificationResponse } from "../types";
 import { isAdmin, isTeacher } from "../utils/roles";
 import {
   IconBell, IconUser, IconBook, IconLogOut, IconChevronDown,
-  IconMonitor, IconVideo, IconFileText, IconAward
+  IconMonitor, IconVideo, IconFileText, IconAward, IconCheck
 } from "./Icons";
 import "./Navbar.css";
 
@@ -243,6 +243,9 @@ export default function Navbar() {
                     </Link>
                     <Link to="/wrong-notes" className="dropdown-item" onClick={() => setMenuOpen(false)}>
                       <IconFileText size={15} /> 오답노트
+                    </Link>
+                    <Link to="/my-payments" className="dropdown-item" onClick={() => setMenuOpen(false)}>
+                      <IconCheck size={15} /> 결제 내역
                     </Link>
                     {isAdmin(user) && (
                       <Link to="/admin" className="dropdown-item" onClick={() => setMenuOpen(false)}>
