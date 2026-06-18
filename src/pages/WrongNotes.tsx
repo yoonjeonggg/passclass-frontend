@@ -219,52 +219,60 @@ export default function WrongNotes() {
                     </div>
                   )}
 
-                  <div className="wn-memo">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span className="wn-memo-label">메모</span>
-                      {editingMemoId !== note.wrongNoteId && (
-                        <button
-                          style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--primary)', cursor: 'pointer' }}
-                          onClick={() => { setEditingMemoId(note.wrongNoteId); setMemoText(note.memo || ''); }}
-                        >
-                          {note.memo ? '수정' : '+ 메모 추가'}
-                        </button>
+                  {(note.memo || editingMemoId === note.wrongNoteId) && (
+                    <div className="wn-memo">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span className="wn-memo-label">메모</span>
+                        {editingMemoId !== note.wrongNoteId && (
+                          <button
+                            style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--primary)', cursor: 'pointer' }}
+                            onClick={() => { setEditingMemoId(note.wrongNoteId); setMemoText(note.memo || ''); }}
+                          >
+                            수정
+                          </button>
+                        )}
+                      </div>
+                      {editingMemoId === note.wrongNoteId ? (
+                        <div>
+                          <textarea
+                            className="form-input"
+                            value={memoText}
+                            onChange={e => setMemoText(e.target.value)}
+                            rows={3}
+                            placeholder="나만의 메모를 남겨보세요..."
+                            style={{ fontSize: 13, marginBottom: 8, resize: 'vertical' }}
+                          />
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              className="btn btn-primary"
+                              style={{ fontSize: 12, padding: '4px 12px' }}
+                              onClick={() => handleSaveMemo(note.wrongNoteId)}
+                              disabled={savingMemo}
+                            >
+                              {savingMemo ? '저장 중...' : '저장'}
+                            </button>
+                            <button
+                              className="btn btn-ghost"
+                              style={{ fontSize: 12, padding: '4px 12px' }}
+                              onClick={() => setEditingMemoId(null)}
+                            >
+                              취소
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="wn-memo-text">{note.memo}</p>
                       )}
                     </div>
-                    {editingMemoId === note.wrongNoteId ? (
-                      <div>
-                        <textarea
-                          className="form-input"
-                          value={memoText}
-                          onChange={e => setMemoText(e.target.value)}
-                          rows={3}
-                          placeholder="나만의 메모를 남겨보세요..."
-                          style={{ fontSize: 13, marginBottom: 8, resize: 'vertical' }}
-                        />
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            className="btn btn-primary"
-                            style={{ fontSize: 12, padding: '4px 12px' }}
-                            onClick={() => handleSaveMemo(note.wrongNoteId)}
-                            disabled={savingMemo}
-                          >
-                            {savingMemo ? '저장 중...' : '저장'}
-                          </button>
-                          <button
-                            className="btn btn-ghost"
-                            style={{ fontSize: 12, padding: '4px 12px' }}
-                            onClick={() => setEditingMemoId(null)}
-                          >
-                            취소
-                          </button>
-                        </div>
-                      </div>
-                    ) : note.memo ? (
-                      <p className="wn-memo-text">{note.memo}</p>
-                    ) : (
-                      <p style={{ fontSize: 13, color: 'var(--gray-400)', fontStyle: 'italic' }}>메모 없음</p>
-                    )}
-                  </div>
+                  )}
+                  {!note.memo && editingMemoId !== note.wrongNoteId && (
+                    <button
+                      style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--primary)', cursor: 'pointer', padding: '4px 0' }}
+                      onClick={() => { setEditingMemoId(note.wrongNoteId); setMemoText(''); }}
+                    >
+                      + 메모 추가
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
