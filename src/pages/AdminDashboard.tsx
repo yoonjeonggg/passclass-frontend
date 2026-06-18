@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { certificateApi, lectureApi, fileApi } from '../api';
-import type { CertificateResponse, LectureListDto, LectureUpdateRequest } from '../types';
+import { certificateApi, lectureApi, fileApi, userApi } from '../api';
+import type { CertificateResponse, LectureListDto, LectureUpdateRequest, UserRole } from '../types';
 import { useToast } from '../components/Toast';
 import StaffProblemsMockSection from './StaffProblemsMockSection';
 import './StaffDashboard.css';
@@ -25,6 +25,11 @@ export default function AdminDashboard() {
   const [deletingLectureId, setDeletingLectureId] = useState<number | null>(null);
   const [thumbnailUploading, setThumbnailUploading] = useState(false);
   const [certs, setCerts] = useState<CertificateResponse[]>([]);
+
+  // Role change state
+  const [roleUserId, setRoleUserId] = useState('');
+  const [roleValue, setRoleValue] = useState<UserRole>('STUDENT');
+  const [roleChanging, setRoleChanging] = useState(false);
 
   const load = () => {
     certificateApi.getAll()
@@ -141,6 +146,23 @@ export default function AdminDashboard() {
       toast(err instanceof Error ? err.message : '수정 실패', 'error');
     } finally {
       setLectureSaving(false);
+    }
+  };
+
+  const handleRoleChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const uid = Number(roleUserId);
+    if (!uid) { toast('유효한 사용자 ID를 입력하세요.', 'error'); return; }
+    if (!window.confirm(`사용자 #${uid}의 역할을 ${roleValue}로 변경하시겠습니까?`)) return;
+    setRoleChanging(true);
+    try {
+      await userApi.changeRole(uid, { role: roleValue });
+      toast(`사용자 #${uid} 역할이 ${roleValue}로 변경되었습니다.`, 'success');
+      setRoleUserId('');
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : '역할 변경 실패', 'error');
+    } finally {
+      setRoleChanging(false);
     }
   };
 
@@ -299,6 +321,40 @@ export default function AdminDashboard() {
               </table>
             </div>
           )}
+        </section>
+
+        {/* 사용자 역할 변경 */}
+        <section className="staff-panel">
+          <h2 className="staff-panel-title">사용자 역할 변경</h2>
+          <p className="staff-panel-desc">사용자 ID를 입력하고 역할을 변경합니다. 사용자 ID는 프로필 페이지에서 확인할 수 있습니다.</p>
+          <form onSubmit={handleRoleChange}>
+            <div className="staff-form-grid">
+              <div className="staff-field">
+                <label>사용자 ID</label>
+                <input
+                  type="number"
+                  value={roleUserId}
+                  onChange={e => setRoleUserId(e.target.value)}
+                  placeholder="예: 42"
+                  min={1}
+                  required
+                />
+              </div>
+              <div className="staff-field">
+                <label>새 역할</label>
+                <select value={roleValue} onChange={e => setRoleValue(e.target.value as UserRole)}>
+                  <option value="STUDENT">STUDENT (수강생)</option>
+                  <option value="TEACHER">TEACHER (강사)</option>
+                  <option value="ADMIN">ADMIN (관리자)</option>
+                </select>
+              </div>
+            </div>
+            <div className="staff-actions">
+              <button type="submit" className="btn btn-primary" disabled={roleChanging}>
+                {roleChanging ? '처리 중…' : '역할 변경'}
+              </button>
+            </div>
+          </form>
         </section>
 
         <StaffProblemsMockSection />

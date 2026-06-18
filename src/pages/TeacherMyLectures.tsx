@@ -60,7 +60,7 @@ export default function TeacherMyLectures() {
     ])
       .then(([lRes, rRes, qRes]) => {
         setLecture(lRes.data);
-        setReviews(rRes.data);
+        setReviews(rRes.data.content ?? rRes.data ?? []);
         setQuestions((qRes as any).data ?? []);
         setActiveTab('stats');
       })
@@ -77,7 +77,7 @@ export default function TeacherMyLectures() {
       setReplyingReviewId(null);
       setReplyText('');
       const r = await reviewApi.getList(Number(lectureId));
-      setReviews(r.data);
+      setReviews(r.data.content ?? r.data ?? []);
     } catch (err: unknown) {
       toast(err instanceof Error ? err.message : '답글 등록 실패', 'error');
     } finally {

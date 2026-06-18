@@ -138,11 +138,12 @@ export default function LectureDetail() {
         setLecture(l);
         setIsLiked(l.isLiked ?? false);
         setLikeCount(l.likeCount ?? 0);
-        setReviews(reviewRes.data);
+        setReviews(reviewRes.data.content ?? reviewRes.data ?? []);
         setReviewSummary(summaryRes.data);
         setQuestions((qRes as any).data ?? []);
         if (enrollRes) {
-          const alreadyEnrolled = enrollRes.data.some((e: any) => e.lectureId === id);
+          const enrollList = enrollRes.data.content ?? enrollRes.data ?? [];
+          const alreadyEnrolled = enrollList.some((e: any) => e.lectureId === id);
           setEnrolled(alreadyEnrolled);
           if (alreadyEnrolled) {
             chapterApi.getMyProgress(id)
@@ -331,7 +332,7 @@ export default function LectureDetail() {
         reviewApi.getList(Number(lectureId)),
         reviewApi.getSummary(Number(lectureId)),
       ]);
-      setReviews(reviewRes.data);
+      setReviews(reviewRes.data.content ?? reviewRes.data ?? []);
       setReviewSummary(summaryRes.data);
     } catch (err: any) {
       toast(err.message || "리뷰 등록 실패", "error");
@@ -349,11 +350,27 @@ export default function LectureDetail() {
       setReplyingReviewId(null);
       setReplyText("");
       const reviewRes = await reviewApi.getList(Number(lectureId));
-      setReviews(reviewRes.data);
+      setReviews(reviewRes.data.content ?? reviewRes.data ?? []);
     } catch (err: any) {
       toast(err.message || "답글 등록 실패", "error");
     } finally {
       setSubmittingReply(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: number) => {
+    if (!window.confirm("리뷰를 삭제하시겠습니까?")) return;
+    try {
+      await reviewApi.delete(reviewId);
+      toast("리뷰가 삭제되었습니다.", "success");
+      const [reviewRes, summaryRes] = await Promise.all([
+        reviewApi.getList(Number(lectureId)),
+        reviewApi.getSummary(Number(lectureId)),
+      ]);
+      setReviews(reviewRes.data.content ?? reviewRes.data ?? []);
+      setReviewSummary(summaryRes.data);
+    } catch (err: any) {
+      toast(err.message || "리뷰 삭제 실패", "error");
     }
   };
 
@@ -704,7 +721,19 @@ export default function LectureDetail() {
                               </div>
                             </div>
                           </div>
-                          <StarRating value={Math.round(r.rating)} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <StarRating value={Math.round(r.rating)} />
+                            {user && user.nickname === r.nickname && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteReview(r.reviewId)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--gray-400)', padding: '2px 6px' }}
+                                title="리뷰 삭제"
+                              >
+                                삭제
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className="review-content">{r.content}</p>
 

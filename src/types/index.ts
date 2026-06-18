@@ -1,4 +1,8 @@
 // Auth
+export interface EmailSendRequest { email: string; }
+export interface EmailVerifyRequest { email: string; code: string; }
+export interface PasswordResetConfirmRequest { email: string; code: string; newPassword: string; }
+
 export interface SignupRequest {
   email: string;
   password: string;
@@ -49,6 +53,15 @@ export interface ProfileResponse {
 export interface PatchMyProfileRequest {
   nickname?: string;
   profileImage?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangeRoleRequest {
+  role: UserRole;
 }
 
 // Certificate
@@ -392,6 +405,27 @@ export interface WrongNoteResponse {
   correctAnswer: number;
   explanation: string;
   memo: string | null;
+  isFavorite: boolean;
+}
+
+export interface UpdateWrongNoteMemoRequest {
+  memo: string | null;
+}
+
+// Statistics
+export interface CertificateStatDto {
+  certificateId: number;
+  certificateName: string;
+  solved: number;
+  correct: number;
+  correctRate: number;
+}
+
+export interface ProblemStatisticsResponse {
+  totalSolved: number;
+  totalCorrect: number;
+  correctRate: number;
+  byCategory: CertificateStatDto[];
 }
 
 // Q&A

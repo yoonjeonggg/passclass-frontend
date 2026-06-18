@@ -4,7 +4,9 @@ import type {
   ApiResponse,
   SignupRequest, SignupResponse,
   LoginRequest, TokenResponse, AutoLoginRequest,
+  EmailSendRequest, EmailVerifyRequest, PasswordResetConfirmRequest,
   MyProfileResponse, ProfileResponse, PatchMyProfileRequest,
+  ChangePasswordRequest, ChangeRoleRequest,
   CertificateRequest, CertificateResponse,
   LectureRequest, LectureUpdateRequest, LectureCreateResponse, LectureDetailResponse, PageLectureListDto,
   LectureChapterRequest, LectureChapterResponse, ChapterWatchResponse, LectureProgressResponse,
@@ -18,7 +20,8 @@ import type {
   ProblemCreateRequest, ProblemUpdateRequest, IdOnlyResponse,
   MockExamListItem, MockExamDetailResponse, MockExamSubmitRequest, MockExamSubmitResponse,
   MockExamCreateRequest, MockExamAddQuestionRequest,
-  WrongNoteResponse,
+  WrongNoteResponse, UpdateWrongNoteMemoRequest,
+  ProblemStatisticsResponse,
   LectureQuestionRequest, LectureAnswerRequest, LectureQuestionResponse,
 } from '../types';
 
@@ -31,6 +34,14 @@ export const authApi = {
   logout: () => api.post<ApiResponse<void>>('/auth/log-out'),
   autoLogin: (data: AutoLoginRequest) =>
     api.post<ApiResponse<TokenResponse>>('/auth/auto-login', data),
+  sendVerificationEmail: (data: EmailSendRequest) =>
+    api.post<ApiResponse<void>>('/auth/email/send', data),
+  verifyEmail: (data: EmailVerifyRequest) =>
+    api.post<ApiResponse<void>>('/auth/email/verify', data),
+  sendPasswordReset: (data: EmailSendRequest) =>
+    api.post<ApiResponse<void>>('/auth/password/reset', data),
+  confirmPasswordReset: (data: PasswordResetConfirmRequest) =>
+    api.post<ApiResponse<void>>('/auth/password/confirm', data),
 };
 
 // User
@@ -40,6 +51,12 @@ export const userApi = {
     api.patch<ApiResponse<MyProfileResponse>>('/user/profile/me', data),
   getProfile: (userId: number) =>
     api.get<ApiResponse<ProfileResponse>>(`/user/profile/${userId}`),
+  changePassword: (data: ChangePasswordRequest) =>
+    api.patch<ApiResponse<void>>('/user/password', data),
+  deleteAccount: () =>
+    api.delete<ApiResponse<void>>('/user/me'),
+  changeRole: (userId: number, data: ChangeRoleRequest) =>
+    api.patch<ApiResponse<void>>(`/user/${userId}/role`, data),
 };
 
 // Certificate
@@ -102,8 +119,10 @@ export const enrollmentApi = {
     api.post<ApiResponse<EnrollmentResponse>>(`/enrollment/${lectureId}`),
   cancel: (lectureId: number) =>
     api.delete<ApiResponse<void>>(`/enrollment/${lectureId}`),
-  getMyEnrollments: () =>
-    api.get<ApiResponse<EnrollmentResponse[]>>('/enrollment/me'),
+  getMyEnrollments: (page = 0, size = 100) =>
+    api.get<ApiResponse<PageResponse<EnrollmentResponse>>>(`/enrollment/me?page=${page}&size=${size}`),
+  getMyCompletedEnrollments: (page = 0, size = 100) =>
+    api.get<ApiResponse<PageResponse<EnrollmentResponse>>>(`/enrollment/me/completed?page=${page}&size=${size}`),
 };
 
 // Review
@@ -112,12 +131,14 @@ export const reviewApi = {
     api.post<ApiResponse<void>>('/reviews', data),
   update: (reviewId: number, data: ReviewRequest) =>
     api.put<ApiResponse<void>>(`/reviews/${reviewId}`, data),
+  delete: (reviewId: number) =>
+    api.delete<ApiResponse<void>>(`/reviews/${reviewId}`),
   reply: (reviewId: number, data: ReviewReplyRequest) =>
     api.post<ApiResponse<void>>(`/reviews/${reviewId}/reply`, data),
   getSummary: (lectureId: number) =>
     api.get<ApiResponse<ReviewSummaryResponse>>(`/reviews/summary?lectureId=${lectureId}`),
   getList: (lectureId: number) =>
-    api.get<ApiResponse<ReviewResponse[]>>(`/reviews?lectureId=${lectureId}`),
+    api.get<ApiResponse<PageResponse<ReviewResponse>>>(`/reviews?lectureId=${lectureId}&page=0&size=50`),
 };
 
 // Like
@@ -176,6 +197,11 @@ export const mockExamApi = {
 // WrongNote
 export const wrongNoteApi = {
   getMyNotes: () => api.get<ApiResponse<WrongNoteResponse[]>>('/wrong-notes'),
+  getFavorites: () => api.get<ApiResponse<WrongNoteResponse[]>>('/wrong-notes/favorites'),
+  toggleFavorite: (wrongNoteId: number) =>
+    api.patch<ApiResponse<WrongNoteResponse>>(`/wrong-notes/${wrongNoteId}/favorite`),
+  updateMemo: (wrongNoteId: number, data: UpdateWrongNoteMemoRequest) =>
+    api.patch<ApiResponse<WrongNoteResponse>>(`/wrong-notes/${wrongNoteId}/memo`, data),
   deleteNote: (wrongNoteId: number) => api.delete<ApiResponse<void>>(`/wrong-notes/${wrongNoteId}`),
 };
 
@@ -195,8 +221,16 @@ export const notificationApi = {
     api.get<ApiResponse<PageResponse<NotificationResponse>>>(`/notifications?page=${page}&size=${size}`),
   markAsRead: (notificationId: number) =>
     api.patch<ApiResponse<void>>(`/notifications/${notificationId}/read`),
+  markAllAsRead: () =>
+    api.patch<ApiResponse<void>>('/notifications/read-all'),
   getUnreadCount: () =>
     api.get<ApiResponse<UnreadCountResponse>>('/notifications/unread-count'),
+};
+
+// Statistics
+export const statisticsApi = {
+  getProblemStatistics: () =>
+    api.get<ApiResponse<ProblemStatisticsResponse>>('/statistics/problems'),
 };
 
 // Monitoring

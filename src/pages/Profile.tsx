@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { userApi, fileApi } from '../api';
 import { useToast } from '../components/Toast';
@@ -7,14 +7,20 @@ import { isAdmin, isTeacher, normalizeUserRole, getProfileRoleRawString } from '
 import './Profile.css';
 
 export default function Profile() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ nickname: user?.nickname || '', profileImage: user?.profileImage || '' });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   if (!user) return null;
 
@@ -58,6 +64,40 @@ export default function Profile() {
   };
 
   const currentImage = previewUrl || (editing ? form.profileImage : user.profileImage);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      toast('새 비밀번호가 일치하지 않습니다.', 'error');
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await userApi.changePassword({ currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword });
+      toast('비밀번호가 변경되었습니다.', 'success');
+      setShowPwForm(false);
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      toast(err.message || '비밀번호 변경 실패', 'error');
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('정말 탈퇴하시겠습니까? 모든 데이터가 삭제되며 복구할 수 없습니다.')) return;
+    setDeletingAccount(true);
+    try {
+      await userApi.deleteAccount();
+      await logout();
+      toast('회원 탈퇴가 완료되었습니다.', 'info');
+      navigate('/');
+    } catch (err: any) {
+      toast(err.message || '탈퇴 처리 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   return (
     <div className="profile-page">
@@ -189,6 +229,83 @@ export default function Profile() {
               </button>
             </div>
           )}
+        </div>
+
+        <div className="profile-card fade-up" style={{ marginTop: 24 }}>
+          <div className="profile-info">
+            <div className="profile-field">
+              <span className="profile-label" style={{ fontWeight: 700, fontSize: 16 }}>보안 설정</span>
+            </div>
+            {!showPwForm ? (
+              <button
+                className="btn btn-outline"
+                onClick={() => setShowPwForm(true)}
+              >
+                🔒 비밀번호 변경
+              </button>
+            ) : (
+              <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 360 }}>
+                <div className="form-group">
+                  <label>현재 비밀번호</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    value={pwForm.currentPassword}
+                    onChange={e => setPwForm(p => ({ ...p, currentPassword: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>새 비밀번호</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="영문+숫자 8자 이상"
+                    value={pwForm.newPassword}
+                    onChange={e => setPwForm(p => ({ ...p, newPassword: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>새 비밀번호 확인</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    value={pwForm.confirmPassword}
+                    onChange={e => setPwForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="submit" className="btn btn-primary" disabled={pwSaving}>
+                    {pwSaving ? '변경 중...' : '변경하기'}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={() => { setShowPwForm(false); setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' }); }}>
+                    취소
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+
+        <div className="profile-card fade-up" style={{ marginTop: 24 }}>
+          <div className="profile-info">
+            <div className="profile-field">
+              <span className="profile-label" style={{ fontWeight: 700, fontSize: 16, color: 'var(--danger, #e53e3e)' }}>위험 구역</span>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 12 }}>
+              계정을 탈퇴하면 모든 데이터(수강 내역, 오답노트, 리뷰 등)가 영구 삭제되며 복구할 수 없습니다.
+            </p>
+            <button
+              className="btn"
+              style={{ background: 'transparent', border: '1px solid var(--danger, #e53e3e)', color: 'var(--danger, #e53e3e)' }}
+              onClick={handleDeleteAccount}
+              disabled={deletingAccount}
+            >
+              {deletingAccount ? '처리 중...' : '회원 탈퇴'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

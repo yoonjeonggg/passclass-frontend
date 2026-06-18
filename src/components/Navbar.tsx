@@ -72,10 +72,11 @@ export default function Navbar() {
   };
 
   const handleMarkAllRead = async () => {
-    const unread = notifications.filter(n => !n.isRead);
-    await Promise.all(unread.map(n => notificationApi.markAsRead(n.id).catch(() => {})));
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    setUnreadCount(0);
+    try {
+      await notificationApi.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch {}
   };
 
   const handleLogout = async () => {
